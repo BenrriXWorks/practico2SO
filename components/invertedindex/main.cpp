@@ -6,6 +6,7 @@
 #include <map>
 #include <chrono>
 #include <unistd.h>
+#include "include/FastSocket.h"
 
 using namespace std;
 
@@ -19,10 +20,15 @@ void clearScreen();
 
 int main(int argc, char** argv){
 
-    if (argc != 3) {
-        fputs_unlocked("Main: La llamada a la funcion debe ser:\n $ ./main INVERTED_INDEX_FILE TOPK\n",stdout);
-        return EXIT_FAILURE;
-    }
+    //if (argc != 3) {
+    //    fputs_unlocked("Main: La llamada a la funcion debe ser:\n $ ./main INVERTED_INDEX_FILE TOPK\n",stdout);
+    //    return EXIT_FAILURE;
+    //}
+
+    FastSocket::ServerSocket(8081,-1);
+    printf("Conexion exitosa al cache!\n");
+    cin.ignore();
+    return 0;
 
     string filepath = string(argv[1]);
     string topk_str = string(argv[2]);
