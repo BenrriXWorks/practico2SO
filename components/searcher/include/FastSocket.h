@@ -1,4 +1,4 @@
-// Ver 1.0
+// Ver 1.1
 #include <string>
 #include <sys/socket.h>
 #include <stdexcept>

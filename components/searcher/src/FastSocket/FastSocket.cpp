@@ -1,4 +1,4 @@
-// Ver 1.0
+// Ver 1.2
 #include "../../include/FastSocket.h"
 
 std::queue<int> FastSocket::openedSockets = std::queue<int>();
@@ -50,6 +50,15 @@ int FastSocket::ServerSocket(int port, int maxConnections) noexcept {
     // Iniciar socket del dominio (TCP, IPv4)
     int serverSocket = socket(AF_INET, SOCK_STREAM, 0);
     if (serverSocket == -1) return (printf("No se pudo crear el socket servidor\n"),-1);
+
+    // Preparar por si se quiere reusar el socket
+    int opt = 1, opt2 = 2;
+    if (setsockopt(serverSocket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) + 
+    setsockopt(serverSocket,SOL_SOCKET, SO_REUSEPORT, &opt2, sizeof(opt)) < 0){
+        printf("Error con setsockopt al preparar el reuso del puerto\n");
+        return -1;
+    }
+
 
     // Definir direccion del socket 
     struct sockaddr_in serverAddress;
