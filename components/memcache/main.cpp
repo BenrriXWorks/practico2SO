@@ -49,8 +49,8 @@ void event(int frontendFd, int connectionFd) {
                 printf("Error al recibir la respuesta\n");
                 break;
             }
-            //cout << response << endl;
-            ResultsQuery rq = ResultsQuery::fromString(query);
+            cout << response << endl;
+            ResultsQuery rq = ResultsQuery::fromString(response);
             cout << rq.toString() << endl;
             printf("Mensaje enviado: %s\n", msg.c_str());
 

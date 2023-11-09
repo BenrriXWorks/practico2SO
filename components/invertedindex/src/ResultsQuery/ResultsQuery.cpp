@@ -12,7 +12,6 @@
     found(0,1)
     text1,1 tex2,2 text3,3
 */
-
 std ::string ResultsQuery::toString(){
     std::stringstream ss;
 
@@ -23,16 +22,13 @@ std ::string ResultsQuery::toString(){
     for (const auto &result : results) {
         ss << result.second << "," << result.first << " ";
     }
-    // Convertir query (multimap) a cadena
-    for (const auto &result : results) {
-        ss << result.second << "," << result.first << " ";
-    }
     return ss.str();
     
 }
 
 ResultsQuery ResultsQuery::fromString(std::string query){
     const auto splittedQuery = split(query,'\n');
+   
     if(splittedQuery.size()!= 7){
         printf("Query invalida: %s\n",query.c_str());
         return ResultsQuery("","","","","",0,std::multimap<unsigned int,std::string,std::greater<unsigned int>>());

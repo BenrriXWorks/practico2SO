@@ -1,6 +1,7 @@
 //v1.0
 #include "../../include/ResultsQuery.h"
-
+#include <iostream>
+using namespace std;
 std ::string ResultsQuery::toString(){
     std::stringstream ss;
 
@@ -11,16 +12,15 @@ std ::string ResultsQuery::toString(){
     for (const auto &result : results) {
         ss << result.second << "," << result.first << " ";
     }
-    // Convertir query (multimap) a cadena
-    for (const auto &result : results) {
-        ss << result.second << "," << result.first << " ";
-    }
     return ss.str();
     
 }
 
 ResultsQuery ResultsQuery::fromString(std::string query){
     const auto splittedQuery = split(query,'\n');
+     for(auto elem:splittedQuery){
+        cout << elem << endl;
+    }
     if(splittedQuery.size()!= 7){
         printf("Query invalida: %s\n",query.c_str());
         return ResultsQuery("","","","","",0,std::multimap<unsigned int,std::string,std::greater<unsigned int>>());

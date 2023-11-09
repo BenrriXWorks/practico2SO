@@ -115,7 +115,7 @@ void event(int frontendFd){
             }
             printf("ping recibido de fd %d\n", frontendFd);
         }
-        
+        cout <<query << endl;
         SearchQuery sq = SearchQuery::fromString(query);
         
         string result = searchMsg(sq.getQuery());
@@ -130,7 +130,6 @@ void event(int frontendFd){
     }
 }
 string searchMsg(const string query){
-    auto clockInit = chrono::high_resolution_clock::now();
     string filepath = filePath;
     // Cargar el archivo de indice
     FileReader fr;
@@ -150,18 +149,18 @@ string searchMsg(const string query){
             }
         }
 
-    
+    auto clockInit = chrono::high_resolution_clock::now();
     multimap<unsigned int, string, greater<unsigned int>> invertedOrderedMap = searchWords(split(strip(query),' '), index);
     auto clockEnd = chrono::high_resolution_clock::now();
 
-
+   
     auto Time = chrono::duration_cast<chrono::nanoseconds>(clockEnd - clockInit).count();
     bool isFound = !invertedOrderedMap.empty();
     string tiempoStr = std::to_string(Time);
     
     // Crear ResultsQuery con los resultados
     ResultsQuery rq = ResultsQuery(query,"invertedindex","memcache", tiempoStr, isFound ? "BACKEND":"", isFound, invertedOrderedMap);
-
+    cout << rq.toString() << endl;
     return rq.toString();
 }
 /*void clearScreen(){
