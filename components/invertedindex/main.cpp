@@ -16,11 +16,6 @@ using namespace std;
 #define each const auto&
 #define indexType robin_hood::unordered_map<std::string, robin_hood::unordered_map<std::string, unsigned int>>
  
-/*#define portCache "8081"
-#define addr "127.0.0.1"
-#define filePath "index.idx"
-#define topk_str "4"
-#define buffsize "512"*/
 #define portCache getenv("PORT_C2")
 #define addr getenv("ADDRESS")
 #define filePath getenv("INDEX_ROUTE")
@@ -28,25 +23,18 @@ using namespace std;
 #define buffsize getenv("BUFFER_SIZE")
 
 void event(int frontendFd);
-string searchMsg(const string query);
+string searchMsg(SearchQuery query);
 multimap<unsigned int, string, greater<unsigned int>> searchWords(const std::vector<std::string>& words, indexType& index); 
 robin_hood::unordered_map<std::string, unsigned int> scoreIntersect(vector<robin_hood::unordered_map<std::string, unsigned int>*>& v);
-void showMenu(indexType index, int topk);
-void clearScreen();
 
 
 int main(int argc, char** argv){
-
-    //if (argc != 3) {
-    //    fputs_unlocked("Main: La llamada a la funcion debe ser:\n $ ./main INVERTED_INDEX_FILE TOPK\n",stdout);
-    //    return EXIT_FAILURE;
-    //}
-
-    /*FastSocket::ServerSocket(8081,-1);
-    printf("Conexion exitosa al cache!\n");
-    cin.ignore();
-    return 0;*/
-
+    
+    if(portCache == nullptr || addr == nullptr || filePath == nullptr || topk_str == nullptr || buffsize == nullptr){
+        printf("Falta alguna de las variables de entorno en env\n");
+        printf("PORT_C2: %s | ADDRESS: %s | INDEX_ROUTE: %s | TOP_K: %s | BUFFER_SIZE: %s",portCache,addr,filePath,topk_str,buffsize);
+        return EXIT_FAILURE;
+    }
     while (true) {
         printf("Esperando cliente\n");
         int frontendFd = FastSocket::ServerSocket(atoi(portCache), 1);
@@ -59,41 +47,7 @@ int main(int argc, char** argv){
 
         event(frontendFd);
 
-
     }
-    //string filepath = string(argv[1]);
-    //string topk_str = string(argv[2]);
-    // Se revisa que TOPK solo sean numeros
-    /*if (topk_str.find_first_not_of("1234567890") != string::npos){
-        printf("Main: La variable topk {%s} tiene caracteres invalidos, debe ser un numero\n",topk_str.c_str());
-        return EXIT_FAILURE;
-    }*/
-    /*int topk_int = stoi(topk_str);
-    if (topk_int < 5){ // Comprobar que topk sea mayor a 4
-        printf("Main: Debes establecer TOPK > 4. Saliendo\n");
-        return EXIT_FAILURE;
-    }
-    string filepath = filePath;
-    // Cargar el archivo de indice
-    FileReader fr;
-    if (!fr.open(filepath)){
-        printf("Main: No se pudo cargar el archivo de indice en %s\n",filepath.c_str());
-        return EXIT_FAILURE;
-    }
-
-    // Leer el indice como un unordered map de string a unordered map de string a unsigned int
-    indexType index;
-    for (each line : fr.readLines())
-        if (!line.empty()){
-            auto wordAndFiles = split1(line,':');
-            for (each file : split(wordAndFiles.second,';')){
-                auto filenameAndCount = split1(strip(strip(file,'('),')'),',');
-                index[wordAndFiles.first][filenameAndCount.first] = stoi(filenameAndCount.second);
-            }
-        }
-    // Desplegar el menu
-    showMenu(index,topk_int);
-    fputs_unlocked("Gracias por usar el buscador!\n",stdout);*/
     return EXIT_SUCCESS;
 }
 
@@ -118,8 +72,7 @@ void event(int frontendFd){
         cout <<query << endl;
         SearchQuery sq = SearchQuery::fromString(query);
         
-        string result = searchMsg(sq.getQuery());
-        
+        string result = searchMsg(sq);
 
         if (FastSocket::sendmsg(frontendFd, result, atoi(buffsize)) <= 0) {
             printf("Error al responder el mensaje\n");
@@ -129,7 +82,8 @@ void event(int frontendFd){
         cout << result << endl;
     }
 }
-string searchMsg(const string query){
+string searchMsg(SearchQuery sq){
+    string query = sq.getQuery();
     string filepath = filePath;
     // Cargar el archivo de indice
     FileReader fr;
@@ -153,23 +107,22 @@ string searchMsg(const string query){
     multimap<unsigned int, string, greater<unsigned int>> invertedOrderedMap = searchWords(split(strip(query),' '), index);
     auto clockEnd = chrono::high_resolution_clock::now();
 
-   
+    multimap<unsigned int, string, greater<unsigned int>> finalMap;
+    auto it = invertedOrderedMap.begin();
+    for (int i = 0; i < atoi(topk_str) && it != invertedOrderedMap.end(); ++i, ++it) {
+    finalMap.insert(*it);
+}
     auto Time = chrono::duration_cast<chrono::nanoseconds>(clockEnd - clockInit).count();
-    bool isFound = !invertedOrderedMap.empty();
+    bool isFound = !finalMap.empty();
+
     string tiempoStr = std::to_string(Time);
     
     // Crear ResultsQuery con los resultados
-    ResultsQuery rq = ResultsQuery(query,"invertedindex","memcache", tiempoStr, isFound ? "BACKEND":"", isFound, invertedOrderedMap);
+    ResultsQuery rq = ResultsQuery(query,"invertedIndex",sq.origin,tiempoStr, isFound ? "BACKEND":"", isFound, finalMap);
     cout << rq.toString() << endl;
     return rq.toString();
 }
-/*void clearScreen(){
-    #ifndef _WIN32
-        system("clear");
-    #else
-        system("cls");
-    #endif
-}*/
+
 
 multimap<unsigned int, string, greater<unsigned int>> searchWords(const std::vector<std::string>& words, indexType& index){
 
@@ -204,36 +157,3 @@ robin_hood::unordered_map<std::string, unsigned int> scoreIntersect(vector<robin
     }
     return intersection;
 }
-/*
-void showMenu(indexType index, int topk){
-    std::string input;
-    do {
-
-        clearScreen();
-        printf("\"BUSCADOR BASADO EN INDICE INVERTIDO\" (%d)\n\nLos top K documentos seran = %d\n\n",getpid(), topk);
-    
-        fputs_unlocked("Escriba texto a buscar: ",stdout);
-        getline(std::cin, input);
-
-        auto clockInit = chrono::high_resolution_clock::now();
-        multimap<unsigned int, string, greater<unsigned int>> invertedOrderedMap = searchWords(split(strip(input),' '), index);
-        auto clockEnd = chrono::high_resolution_clock::now();
-
-        // Escribir en pantalla los 
-        printf("Respuesta (tiempo = %lums/%luns | Resultados = %lu ):\n\n",chrono::duration_cast<chrono::milliseconds>(clockEnd-clockInit).count(),
-            chrono::duration_cast<chrono::nanoseconds>(clockEnd-clockInit).count(),invertedOrderedMap.size());
-        int i = 0;
-        for (each element : invertedOrderedMap) {
-            if (++i > topk) break;
-            printf("\t%d) %s %d\n", i, element.second.c_str(), element.first);
-        }
-        
-        do {
-            fputs_unlocked("\nDesea continuar (S/N): ",stdout);
-            getline(std::cin, input);
-            input = input == "N" ? "n" : input == "S" ? "s" : input;
-        } while (input != "n" && input != "s");
-
-
-    } while (input != "n");
-}*/
