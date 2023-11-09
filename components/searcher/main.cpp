@@ -32,8 +32,7 @@ int main() {
         clearWindow();
         printf("Intentando conectar con el servidor...\n");
         int fd = FastSocket::ClientSocket(port, SERVER_ADDRESS); // Establecer conexion
-        int status = FastSocket::ping(fd, "?", "1", buffsize); // Enviar un ping
-        if (fd != -1 && status != -1) {
+        if (fd != -1 && FastSocket::ping(fd, "?", "?", buffsize) == true) {
             printf("Conexion exitosa!\n");
             menu(fd,buffsize);
             printf("Volviendo a intentar la conexion\n");
