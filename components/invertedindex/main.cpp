@@ -7,16 +7,28 @@
 #include <chrono>
 #include <unistd.h>
 #include "include/FastSocket.h"
+#include "include/ResultsQuery.h"
+#include "include/SearchQuery.h"
+#include <string>
 
 using namespace std;
 
 #define each const auto&
 #define indexType robin_hood::unordered_map<std::string, robin_hood::unordered_map<std::string, unsigned int>>
+ 
+#define portCache "8081"
+#define addr "127.0.0.1"
+#define filePath "index.idx"
+#define topk_str "4"
+#define buffsize "512"
 
+
+string searchMsg(const string query);
 multimap<unsigned int, string, greater<unsigned int>> searchWords(const std::vector<std::string>& words, indexType& index); 
 robin_hood::unordered_map<std::string, unsigned int> scoreIntersect(vector<robin_hood::unordered_map<std::string, unsigned int>*>& v);
 void showMenu(indexType index, int topk);
 void clearScreen();
+
 
 int main(int argc, char** argv){
 
@@ -25,23 +37,56 @@ int main(int argc, char** argv){
     //    return EXIT_FAILURE;
     //}
 
-    FastSocket::ServerSocket(8081,-1);
+    /*FastSocket::ServerSocket(8081,-1);
     printf("Conexion exitosa al cache!\n");
     cin.ignore();
-    return 0;
+    return 0;*/
 
-    string filepath = string(argv[1]);
-    string topk_str = string(argv[2]);
+    while (true) {
+        printf("Esperando cliente\n");
+        int frontendFd = FastSocket::ServerSocket(atoi(portCache), -1);
+        if (frontendFd == -1) {
+            printf("No se pudo crear el socket al frontend, saliendo!\n");
+            printf("Intentandolo nuevamente en 5 segundos\n");
+            sleep(5);
+            continue;
+        }
+
+        printf("Se ha conectado con un cliente\n");
+        std:: string query;
+        int recvResult = FastSocket::recvmsg(frontendFd, query, atoi(buffsize));
+        if (recvResult == -1) {
+            printf("Error al recibir el mensaje\n");
+            break;
+        } else if (recvResult == 0) {
+            printf("Cliente desconectado\n");
+            break;
+        }
+        
+        SearchQuery sq = SearchQuery::fromString(query);
+        
+        string result = searchMsg(sq.getQuery());
+        
+
+        if (FastSocket::sendmsg(frontendFd, result, atoi(buffsize)) <= 0) {
+            printf("Error al responder el mensaje\n");
+            break;
+        }
+
+    }
+    //string filepath = string(argv[1]);
+    //string topk_str = string(argv[2]);
     // Se revisa que TOPK solo sean numeros
-    if (topk_str.find_first_not_of("1234567890") != string::npos){
+    /*if (topk_str.find_first_not_of("1234567890") != string::npos){
         printf("Main: La variable topk {%s} tiene caracteres invalidos, debe ser un numero\n",topk_str.c_str());
         return EXIT_FAILURE;
-    }
-    int topk_int = stoi(topk_str);
+    }*/
+    /*int topk_int = stoi(topk_str);
     if (topk_int < 5){ // Comprobar que topk sea mayor a 4
         printf("Main: Debes establecer TOPK > 4. Saliendo\n");
         return EXIT_FAILURE;
     }
+    string filepath = filePath;
     // Cargar el archivo de indice
     FileReader fr;
     if (!fr.open(filepath)){
@@ -61,11 +106,45 @@ int main(int argc, char** argv){
         }
     // Desplegar el menu
     showMenu(index,topk_int);
-    fputs_unlocked("Gracias por usar el buscador!\n",stdout);
-
+    fputs_unlocked("Gracias por usar el buscador!\n",stdout);*/
     return EXIT_SUCCESS;
 }
 
+
+string searchMsg(const string query){
+    string filepath = filePath;
+    // Cargar el archivo de indice
+    FileReader fr;
+    if (!fr.open(filepath)){
+        printf("Main: No se pudo cargar el archivo de indice en %s\n",filepath.c_str());
+        return "";
+    }
+
+    // Leer el indice como un unordered map de string a unordered map de string a unsigned int
+    indexType index;
+    for (each line : fr.readLines())
+        if (!line.empty()){
+            auto wordAndFiles = split1(line,':');
+            for (each file : split(wordAndFiles.second,';')){
+                auto filenameAndCount = split1(strip(strip(file,'('),')'),',');
+                index[wordAndFiles.first][filenameAndCount.first] = stoi(filenameAndCount.second);
+            }
+        }
+
+    auto clockInit = chrono::high_resolution_clock::now();
+    multimap<unsigned int, string, greater<unsigned int>> invertedOrderedMap = searchWords(split(strip(query),' '), index);
+    auto clockEnd = chrono::high_resolution_clock::now();
+
+
+    auto Time = chrono::duration_cast<chrono::milliseconds>(clockEnd - clockInit).count();
+    bool isFound = !invertedOrderedMap.empty();
+    string tiempoStr = std::to_string(Time);
+    
+    // Crear ResultsQuery con los resultados
+    ResultsQuery rq = ResultsQuery(query,"invertedindex","memcache", tiempoStr, isFound ? "BACKEND":"", isFound, invertedOrderedMap);
+
+    return rq.toString();
+}
 void clearScreen(){
     #ifndef _WIN32
         system("clear");
