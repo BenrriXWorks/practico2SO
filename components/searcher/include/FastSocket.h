@@ -3,14 +3,11 @@
 #include <sys/socket.h>
 #include <stdexcept>
 #include <arpa/inet.h>
-#include <queue>
 #include <unistd.h>
 #include <cstring>
 
 class FastSocket
 {
-private:
-    static std::queue<int> openedSockets;
 
 public:
     // Devuelve el file descriptor de la conexion entre un socket cliente y un servidor.
@@ -26,6 +23,6 @@ public:
     static int sendmsg(int socketFd, std::string message, int bufferSize) noexcept;
     static int sendmsg(int socketFd, const char* message, int bufferSize) noexcept;
 
-    ~FastSocket();
+    static bool ping(int socketFd, const char* message, const char* expectedResponse, int buffsize) noexcept;
 
 };
