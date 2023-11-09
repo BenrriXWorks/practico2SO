@@ -64,7 +64,7 @@ int FastSocket::ClientSocket(int port, const char* serverAddress) noexcept {
     return clientSocket;
 }
 
-// Espera un mensaje y lo guarda en response, cierra el socket si hubo un error
+// Espera un mensaje y lo guarda en response, cierra el socket si hubo un error, 0: desconexion, -1: error, eoc: bien
 int FastSocket::recvmsg(int socketFd, std::string& response, int bufferSize) noexcept {
     const char* buffer = new char [bufferSize];
     int recvCode = recv(socketFd, (void*)buffer, bufferSize, 0);
@@ -73,7 +73,7 @@ int FastSocket::recvmsg(int socketFd, std::string& response, int bufferSize) noe
     return recvCode;
 }
 
-// Envia un string por un socket, cierra el socket si hubo un error
+// Envia un string por un socket, cierra el socket si hubo un error y devuelve -1
 int FastSocket::sendmsg(int socketFd, std::string message, int bufferSize) noexcept {
     char* buffer = new char[bufferSize];
     strcpy(buffer, message.substr(0,bufferSize-1).c_str());
@@ -82,7 +82,7 @@ int FastSocket::sendmsg(int socketFd, std::string message, int bufferSize) noexc
     return status;
 }
 
-// Envia un string por un socket, cierra el socket si hubo un error
+// Envia un string por un socket, cierra el socket si hubo un error y devuelve -1
 int FastSocket::sendmsg(int socketFd, const char* message, int bufferSize) noexcept {
     int status = send(socketFd, message, bufferSize, 0);
     if (status == -1) close(socketFd);

@@ -1,55 +1,95 @@
 #include "include/FastSocket.h"
+#include "include/Functions.h"
+#include "include/SearchQuery.h"
 #include <array>
 #include <unistd.h>
+#include <numeric>
+#include <iostream>
+#include <execution>
+#include <set>
 
-#define portFront getenv("PORT_C1")
-#define addr getenv("ADDRESS")
-#define buffsize getenv("BUFFER_SIZE")
+#define TOTAL_ENV 3
+#define PORT_FRONTEND_CACHE getenv("PORT_C1")
+#define SERVER_ADDRESS getenv("ADDRESS")
+#define BUFFER_SIZE getenv("BUFFER_SIZE")
+
+using namespace std;
+
+
+bool checkenv();
+inline void countdown(int n);
+void menu(const int& fileDescriptor, const int& buffsize);
+void menuContinuar(int fd);
 
 int main() {
-    std::array<const char*, 5> genericQueries = {
-        "hola perro casa\nfrontend\ncache",
-        "test busqueda\nfrontend\ncache",
-        "hola gato\nfrontend\ncache",
-        "busqueda generica\nfrontend\ncache",
-        "si perro\nfrontend\ncache"
+
+    if (!checkenv()) return(printf("Error al cargar entorno\n"),EXIT_FAILURE);
+
+    int port = atoi(PORT_FRONTEND_CACHE);
+    int buffsize = atoi(BUFFER_SIZE);
+    // Ciclo de intentar conectarse
+    while (true){
+        clearWindow();
+        printf("Intentando conectar con el servidor...\n");
+        int fd = FastSocket::ClientSocket(port, SERVER_ADDRESS); // Establecer conexion
+        int status = FastSocket::ping(fd, "?", "1", buffsize); // Enviar un ping
+        if (fd != -1 && status != -1) {
+            printf("Conexion exitosa!\n");
+            menu(fd,buffsize);
+            printf("Volviendo a intentar la conexion\n");
+        };
+        close(fd); // Cerrar el fd
+        printf("Reintentando en: \n"), fflush(stdout), countdown(5);
+    }
+    return 0;
+}
+
+bool checkenv(){
+    array<char*,TOTAL_ENV> env = {
+        PORT_FRONTEND_CACHE,
+        SERVER_ADDRESS,
+        BUFFER_SIZE
     };
 
-    while (true) {
-        printf("Intentando establecer conexión con el servidor de cache\n");
-        int connectionFd = FastSocket::ClientSocket(atoi(portFront), addr);
-        if (connectionFd <= 0) {
-            printf("No se pudo conectar con el cache... reintentando en 2 segundos\n");
-            sleep(2);
-            continue;
-        }
-        printf("conexion aceptada\n");
-        // Hacer un 'ping' al servidor
-        if (FastSocket::ping(connectionFd, "?", "1", atoi(buffsize))) continue;
-
-        printf("Conexión establecida con el servidor de cache\n");
-
-        while (true) {
-            std::string msg = genericQueries[rand() % 5];
-            int sent = FastSocket::sendmsg(connectionFd, msg, atoi(buffsize));
-            if (sent <= 0) {
-                printf("Se rechazó el mensaje %s\n", msg.c_str());
-                break;
-            }
-            printf("Mensaje enviado: %s\n", msg.c_str());
-
-            std::string response;
-            printf("Esperando respuesta...\n");
-            if (FastSocket::recvmsg(connectionFd, response, atoi(buffsize)) <= 0) {
-                printf("Error al recibir la respuesta\n");
-                break;
-            }
-            printf("Response: %s\n", response.c_str());
-
-            sleep(2);
-        }
-        close(connectionFd);
+    if (any_of(env.begin(), env.end(), [](char* a) { return (a == nullptr); })) {
+        printf("Falta alguna variable de entorno, las necesarias son:\nPORT_C1, ADDRESS, BUFFER_SIZE\n");
+        return false;
     }
+    try{
+        return atoi(BUFFER_SIZE) + atoi(PORT_FRONTEND_CACHE);
+    }
+    catch(...) {
+        return false;
+    }
+}
 
-    return 0;
+inline void countdown(int n){
+    for (int i = 0; i <= n; i++) printf("\r%s>%s", string(i,'=').c_str(),string(n-i,'-').c_str()), fflush(stdout), sleep(1);
+}
+
+void menu(const int& fileDescriptor, const int& buffsize){
+    
+    clearWindow();
+    {
+        string msg;
+        printf("Bienvenido, que desea buscar?: "), getline(cin, msg);
+        set<string> queryWords;
+        for (const string& word : split(msg,' ')) queryWords.emplace(word);
+        SearchQuery query(queryWords,"frontend","cache");
+        printf("Query: %s\n", query.toString().c_str());
+        if (FastSocket::sendmsg(fileDescriptor, query.toString(), buffsize) == -1)
+            return (void)printf("No se pudo enviar el mensaje\n");
+        if (FastSocket::recvmsg(fileDescriptor, msg, buffsize) <= 0)
+            return (void)printf("No se pudo recibir el mensaje\n");
+        printf("Respuesta: %s\n",msg.c_str());
+        menuContinuar(fileDescriptor);
+    }
+    menu(fileDescriptor, buffsize);
+}
+
+void menuContinuar(int fd){
+    string msg;
+    printf("Quieres buscar otra cosa? (s/n): "), getline(cin, msg);
+    if (msg == "n") close(fd),clearWindow(),printf("Adios!\n"),exit(EXIT_SUCCESS);
+    if (msg != "s") menuContinuar(fd); 
 }
