@@ -16,13 +16,18 @@ using namespace std;
 #define each const auto&
 #define indexType robin_hood::unordered_map<std::string, robin_hood::unordered_map<std::string, unsigned int>>
  
-#define portCache "8081"
+/*#define portCache "8081"
 #define addr "127.0.0.1"
 #define filePath "index.idx"
 #define topk_str "4"
-#define buffsize "512"
+#define buffsize "512"*/
+#define portCache getenv("PORT_C2")
+#define addr getenv("ADDRESS")
+#define filePath getenv("INDEX_ROUTE")
+#define topk_str getenv("TOP_K")
+#define buffsize getenv("BUFFER_SIZE")
 
-
+void event(int frontendFd);
 string searchMsg(const string query);
 multimap<unsigned int, string, greater<unsigned int>> searchWords(const std::vector<std::string>& words, indexType& index); 
 robin_hood::unordered_map<std::string, unsigned int> scoreIntersect(vector<robin_hood::unordered_map<std::string, unsigned int>*>& v);
@@ -44,34 +49,16 @@ int main(int argc, char** argv){
 
     while (true) {
         printf("Esperando cliente\n");
-        int frontendFd = FastSocket::ServerSocket(atoi(portCache), -1);
+        int frontendFd = FastSocket::ServerSocket(atoi(portCache), 1);
         if (frontendFd == -1) {
-            printf("No se pudo crear el socket al frontend, saliendo!\n");
-            printf("Intentandolo nuevamente en 5 segundos\n");
+            printf("No se pudo crear el socket, intentándolo nuevamente en 5 segundos\n");
             sleep(5);
             continue;
         }
-
         printf("Se ha conectado con un cliente\n");
-        std:: string query;
-        int recvResult = FastSocket::recvmsg(frontendFd, query, atoi(buffsize));
-        if (recvResult == -1) {
-            printf("Error al recibir el mensaje\n");
-            break;
-        } else if (recvResult == 0) {
-            printf("Cliente desconectado\n");
-            break;
-        }
-        
-        SearchQuery sq = SearchQuery::fromString(query);
-        
-        string result = searchMsg(sq.getQuery());
-        
 
-        if (FastSocket::sendmsg(frontendFd, result, atoi(buffsize)) <= 0) {
-            printf("Error al responder el mensaje\n");
-            break;
-        }
+        event(frontendFd);
+
 
     }
     //string filepath = string(argv[1]);
@@ -110,8 +97,40 @@ int main(int argc, char** argv){
     return EXIT_SUCCESS;
 }
 
+void event(int frontendFd){
+    while(true){
+        std:: string query;
+        int recvResult = FastSocket::recvmsg(frontendFd, query, atoi(buffsize));
+        if (recvResult == -1) {
+            printf("Error al recibir el mensaje\n");
+            break;
+        } else if (recvResult == 0) {
+            printf("Cliente desconectado\n");
+            break;
+        }
+        if (query == "?") {
+            if (FastSocket::sendmsg(frontendFd, "?", atoi(buffsize)) <= 0) {
+                printf("Error al responder con '1'\n");
+                break;
+            }
+            printf("ping recibido de fd %d\n", frontendFd);
+        }
+        
+        SearchQuery sq = SearchQuery::fromString(query);
+        
+        string result = searchMsg(sq.getQuery());
+        
 
+        if (FastSocket::sendmsg(frontendFd, result, atoi(buffsize)) <= 0) {
+            printf("Error al responder el mensaje\n");
+            break;
+        }
+        printf("Mensaje Enviado!:\n");
+        cout << result << endl;
+    }
+}
 string searchMsg(const string query){
+    auto clockInit = chrono::high_resolution_clock::now();
     string filepath = filePath;
     // Cargar el archivo de indice
     FileReader fr;
@@ -131,12 +150,12 @@ string searchMsg(const string query){
             }
         }
 
-    auto clockInit = chrono::high_resolution_clock::now();
+    
     multimap<unsigned int, string, greater<unsigned int>> invertedOrderedMap = searchWords(split(strip(query),' '), index);
     auto clockEnd = chrono::high_resolution_clock::now();
 
 
-    auto Time = chrono::duration_cast<chrono::milliseconds>(clockEnd - clockInit).count();
+    auto Time = chrono::duration_cast<chrono::nanoseconds>(clockEnd - clockInit).count();
     bool isFound = !invertedOrderedMap.empty();
     string tiempoStr = std::to_string(Time);
     
@@ -145,13 +164,13 @@ string searchMsg(const string query){
 
     return rq.toString();
 }
-void clearScreen(){
+/*void clearScreen(){
     #ifndef _WIN32
         system("clear");
     #else
         system("cls");
     #endif
-}
+}*/
 
 multimap<unsigned int, string, greater<unsigned int>> searchWords(const std::vector<std::string>& words, indexType& index){
 
@@ -186,7 +205,7 @@ robin_hood::unordered_map<std::string, unsigned int> scoreIntersect(vector<robin
     }
     return intersection;
 }
-
+/*
 void showMenu(indexType index, int topk){
     std::string input;
     do {
@@ -218,4 +237,4 @@ void showMenu(indexType index, int topk){
 
 
     } while (input != "n");
-}
+}*/
