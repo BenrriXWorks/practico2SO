@@ -1,5 +1,8 @@
 #include "include/FastSocket.h"
 #include "include/SearchQuery.h"
+#include "include/ResultsQuery.h"
+#include <iostream>
+using namespace std;
 
 #define portFront getenv("PORT_C1")
 #define portBack getenv("PORT_C2")
@@ -39,6 +42,16 @@ void event(int frontendFd, int connectionFd) {
                 printf("Se rechazó el mensaje %s\n", msg.c_str());
                 break;
             }
+
+            std::string response;
+            printf("Esperando respuesta...\n");
+            if (FastSocket::recvmsg(connectionFd, response, atoi(buffsize)) <= 0) {
+                printf("Error al recibir la respuesta\n");
+                break;
+            }
+            //cout << response << endl;
+            ResultsQuery rq = ResultsQuery::fromString(query);
+            cout << rq.toString() << endl;
             printf("Mensaje enviado: %s\n", msg.c_str());
 
         }

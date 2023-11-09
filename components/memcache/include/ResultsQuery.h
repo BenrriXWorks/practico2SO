@@ -1,4 +1,5 @@
 //v 1.0
+
 #include <string>
 #include "Functions.h"
 #include <set>
@@ -8,21 +9,6 @@
 #include <sstream>
 
 
-/*mensaje={ 
-origen:”./memcache”,
-destino:”./searcher”,
-contexto: {
-tiempo:”100ns”, ori=”CACHE”, isFound=true,
-resultados:[
-{archivo:”file-text1.txt”, puntaje:”122”}
-{archivo:”file-text20.txt”, puntaje:”34”}
-{archivo:”file-text3.txt”, puntaje:”10”}
-{archivo:”file-text2.tx”, puntaje:”2”}
-]
-}
-}*/
-
-/**/
 class ResultsQuery
 {
 public:

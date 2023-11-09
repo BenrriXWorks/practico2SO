@@ -1,17 +1,5 @@
-
-// v 1.0
+//v1.0
 #include "../../include/ResultsQuery.h"
-
-
-/*
-    query
-    origin
-    destination
-    tiempo
-    ori aca es igual a backend
-    found(0,1)
-    text1,1 tex2,2 text3,3
-*/
 
 std ::string ResultsQuery::toString(){
     std::stringstream ss;
