@@ -1,9 +1,9 @@
-// Ver 1.2
+// Ver 1.3
 #include "../../include/FastSocket.h"
 
 int FastSocket::ClientSocket(int port, const char* serverAddress) noexcept {
     // Crear el socket (fileDescription)
-        int clientSocket = socket(AF_INET, SOCK_STREAM, 0);
+    int clientSocket = socket(AF_INET, SOCK_STREAM, 0);
     if (clientSocket == -1) {
         perror("Error al iniciar el socket");
         return -1;
@@ -64,24 +64,29 @@ int FastSocket::ClientSocket(int port, const char* serverAddress) noexcept {
     return clientSocket;
 }
 
-// Espera un mensaje y lo guarda en response
+// Espera un mensaje y lo guarda en response, cierra el socket si hubo un error
 int FastSocket::recvmsg(int socketFd, std::string& response, int bufferSize) noexcept {
     const char* buffer = new char [bufferSize];
     int recvCode = recv(socketFd, (void*)buffer, bufferSize, 0);
     response = buffer;
+    if (recvCode <= -1) close(socketFd);
     return recvCode;
 }
 
-// Envia un string por un socket
+// Envia un string por un socket, cierra el socket si hubo un error
 int FastSocket::sendmsg(int socketFd, std::string message, int bufferSize) noexcept {
     char* buffer = new char[bufferSize];
     strcpy(buffer, message.substr(0,bufferSize-1).c_str());
-    return send(socketFd, buffer, bufferSize, 0);
+    int status = send(socketFd, buffer, bufferSize, 0);
+    if (status == -1) close(socketFd);
+    return status;
 }
 
-// Envia un string por un socket
+// Envia un string por un socket, cierra el socket si hubo un error
 int FastSocket::sendmsg(int socketFd, const char* message, int bufferSize) noexcept {
-    return send(socketFd, message, bufferSize, 0);
+    int status = send(socketFd, message, bufferSize, 0);
+    if (status == -1) close(socketFd);
+    return status;
 }
 
 
@@ -112,7 +117,7 @@ int FastSocket::ServerSocket(int port, int maxConnections) noexcept {
     
     // Esperar conexiones
     printf("Esperando conexiones\n");
-    if (listen(serverSocket, maxConnections) == -1) return(printf("No se pudo escuchar al socket\n"),-1);
+    if (listen(serverSocket, maxConnections) == -1) return(close(serverSocket),printf("No se pudo escuchar al socket\n"),-1);
     int connectionSocket = accept(serverSocket, NULL, NULL);
 
     return connectionSocket;

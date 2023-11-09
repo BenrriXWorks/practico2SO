@@ -35,12 +35,11 @@ void event(int frontendFd) {
             }
         }
     }
-    close(frontendFd);
 }
 
 int main() {
     if (nullptr == getenv("BUFFER_SIZE")) {
-        printf("Falta la variable de entorno BUFFER_SIZE\n");
+        printf("Variable BUFFER_SIZE es incorrecta\n");
         return EXIT_FAILURE;
     }
     if (portFront == nullptr || portBack == nullptr || addr == nullptr) {
@@ -78,6 +77,5 @@ int main() {
         event(frontendFd);
     }
 
-    
     return EXIT_SUCCESS;
 }

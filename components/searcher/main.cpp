@@ -34,7 +34,6 @@ int main() {
             int sent = FastSocket::sendmsg(connectionFd, msg, atoi(buffsize));
             if (sent <= 0) {
                 printf("Se rechazó el mensaje %s\n", msg.c_str());
-                close(connectionFd);
                 break;
             }
             printf("Mensaje enviado: %s\n", msg.c_str());
@@ -43,7 +42,6 @@ int main() {
             printf("Esperando respuesta...\n");
             if (FastSocket::recvmsg(connectionFd, response, atoi(buffsize)) <= 0) {
                 printf("Error al recibir la respuesta\n");
-                close(connectionFd);
                 break;
             }
             printf("Response: %s\n", response.c_str());
