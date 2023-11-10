@@ -1,4 +1,5 @@
 //v 1.0
+#pragma once
 
 #include <string>
 #include "Functions.h"
@@ -7,7 +8,6 @@
 #include <map>
 #include <unistd.h>
 #include <sstream>
-
 
 class ResultsQuery
 {
