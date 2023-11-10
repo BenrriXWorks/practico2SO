@@ -16,27 +16,29 @@ using namespace std;
 #define each const auto&
 #define indexType robin_hood::unordered_map<std::string, robin_hood::unordered_map<std::string, unsigned int>>
  
-#define portCache getenv("PORT_C2")
+#define PORT_CACHE getenv("PORT_C2")
 #define addr getenv("BACKEND_ADDRESS")
-#define filePath getenv("INDEX_ROUTE")
-#define topk_str getenv("TOP_K")
-#define buffsize getenv("BUFFER_SIZE")
+#define INDEX_ROUTE getenv("INDEX_ROUTE")
+#define TOPK_STR getenv("TOP_K")
+#define BUFFER_SIZE getenv("BUFFER_SIZE")
 
 void reconnect(int& fd, const char* target);
-void event(int frontendFd);
-string searchMsg(SearchQuery query);
+void event(int frontendFd, indexType& index);
+string searchMsg(SearchQuery query, indexType& index);
 multimap<unsigned int, string, greater<unsigned int>> searchWords(const std::vector<std::string>& words, indexType& index); 
 robin_hood::unordered_map<std::string, unsigned int> scoreIntersect(vector<robin_hood::unordered_map<std::string, unsigned int>*>& v);
-
+indexType createIndex();
 
 int main(int argc, char** argv){
     
-    if(portCache == nullptr || addr == nullptr || filePath == nullptr || topk_str == nullptr || buffsize == nullptr){
+    if(PORT_CACHE == nullptr || addr == nullptr || INDEX_ROUTE == nullptr || TOPK_STR == nullptr || BUFFER_SIZE == nullptr){
         printf("Falta alguna de las variables de entorno en env\n");
-        printf("PORT_C2: %s | ADDRESS: %s | INDEX_ROUTE: %s | TOP_K: %s | BUFFER_SIZE: %s",portCache,addr,filePath,topk_str,buffsize);
+        printf("PORT_C2: %s | ADDRESS: %s | INDEX_ROUTE: %s | TOP_K: %s | BUFFER_SIZE: %s",PORT_CACHE,addr,INDEX_ROUTE,TOPK_STR,BUFFER_SIZE);
         return EXIT_FAILURE;
     }
-    int cache = FastSocket::ServerSocket(atoi(portCache),1);
+    // Cargar el indice invertido
+    indexType index = createIndex();
+    int cache = FastSocket::ServerSocket(atoi(PORT_CACHE),1);
     while (true) {
         reconnect(cache,"cache");
         /*printf("Esperando cliente\n");
@@ -48,7 +50,7 @@ int main(int argc, char** argv){
         }*/
         printf("Se ha conectado con un cliente\n");
 
-        event(cache);
+        event(cache,index);
 
     }
     return EXIT_SUCCESS;
@@ -58,65 +60,63 @@ void reconnect(int& fd, const char* target){
     printf("Conectando al %s\n",target);
     while (true) {
         if (fd != -1) {
-            if (strcmp(target, "backend") == 0) {
-                if (FastSocket::ping(fd, "?", "?", atoi(buffsize))) {
-                    printf("Conexión establecida con el %s\n", target);
-                    return;  // Conexión exitosa, salir de la función
-                }
-            } else {
-                // Si el objetivo no es "backend", no se requiere ping, por lo que se considera conexión exitosa
+            if (strcmp(target, "cache") == 0) {
                 printf("Conexión establecida con el %s\n", target);
-                return;
-            }
+                return;  // Conexión exitosa, salir de la función
+                
+            } 
         }
         close(fd);
         printf("Error con el %s, reconectando en 3 segundos...\n", target);
         sleep(3);
-        
-        FastSocket::ServerSocket(atoi(portCache), 1);
+        if (strcmp(target,"cache")!=0)
+            fd = FastSocket::ServerSocket(atoi(PORT_CACHE), 1);
     }
 }
-void event(int frontendFd){
+// Manejar los eventos de los mensajes
+void event(int frontendFd, indexType& index){
+
     while(true){
         std:: string query;
-        int recvResult = FastSocket::recvmsg(frontendFd, query, atoi(buffsize));
-        if (recvResult == -1) {
-            printf("Error al recibir el mensaje\n");
-            break;
-        } else if (recvResult == 0) {
-            printf("Cliente desconectado\n");
+        int recvResult = FastSocket::recvmsg(frontendFd, query, atoi(BUFFER_SIZE));
+
+        // Si el mensaje no se recibio o el cliente se desconecto
+        if (recvResult <= 0) {
+            printf("Conexion perdida con el cliente\n");
             break;
         }
-        if (query == "?") {
-            if (FastSocket::sendmsg(frontendFd, "?", atoi(buffsize)) <= 0) {
+
+        // Si el mensaje es un ping
+        if (query == string("?")) {
+            if (FastSocket::sendmsg(frontendFd, "?", atoi(BUFFER_SIZE)) <= 0) {
                 printf("Error al responder con '1'\n");
                 break;
             }
             printf("ping recibido de fd %d\n", frontendFd);
             continue;
         }
-        cout <<query << endl;
+        printf("Mensaje recibido:\n%s\n",query.c_str());
         SearchQuery sq = SearchQuery::fromString(query);
         
-        string result = searchMsg(sq);
+        // Hacer la busqueda
+        string result = searchMsg(sq, index);
 
-        if (FastSocket::sendmsg(frontendFd, result, atoi(buffsize)) <= 0) {
+        // Enviar mensaje con respuesta
+        if (FastSocket::sendmsg(frontendFd, result, atoi(BUFFER_SIZE)) <= 0) {
             printf("Error al responder el mensaje\n");
             break;
         }
-        printf("Mensaje Enviado!:\n");
-        cout << result << endl;
+
+        printf("Mensaje Enviado:\n%s\n",result.c_str());
     }
 }
 
-string searchMsg(SearchQuery sq){
-    string query = sq.getQuery();
-    string filepath = filePath;
+indexType createIndex(){
     // Cargar el archivo de indice
     FileReader fr;
-    if (!fr.open(filepath)){
-        printf("Main: No se pudo cargar el archivo de indice en %s\n",filepath.c_str());
-        return "";
+    if (!fr.open(string(INDEX_ROUTE))){
+        printf("Main: No se pudo cargar el archivo de indice en %s\n",INDEX_ROUTE);
+        return indexType();
     }
 
     // Leer el indice como un unordered map de string a unordered map de string a unsigned int
@@ -129,31 +129,31 @@ string searchMsg(SearchQuery sq){
                 index[wordAndFiles.first][filenameAndCount.first] = stoi(filenameAndCount.second);
             }
         }
+    return index;
+}
 
+string searchMsg(SearchQuery sq, indexType& index){
+    string query = split1(sq.toString(),'\n').first;
+
+    // Buscar en el indice
     auto clockInit = chrono::high_resolution_clock::now();
     multimap<unsigned int, string, greater<unsigned int>> invertedOrderedMap = searchWords(split(strip(query),' '), index);
     auto clockEnd = chrono::high_resolution_clock::now();
 
+    // Guardar solo los top k
     multimap<unsigned int, string, greater<unsigned int>> finalMap;
-    auto it = invertedOrderedMap.begin();
-    for (int i = 0; i < atoi(topk_str) && it != invertedOrderedMap.end(); ++i, ++it) {
-    finalMap.insert(*it);
-    }
-    auto Time = chrono::duration_cast<chrono::nanoseconds>(clockEnd - clockInit).count();
-    bool isFound = !finalMap.empty();
+    int i = 0;
+    for (each elem : invertedOrderedMap) if (atoi(TOPK_STR) < ++i) break; else finalMap.emplace(elem);
 
-    string tiempoStr = std::to_string(Time);
+    auto timeFindAndSort = chrono::duration_cast<chrono::nanoseconds>(clockEnd - clockInit).count();
+    bool isFound = !finalMap.empty();
+    string tiempoStr = std::to_string(timeFindAndSort);
     
-    // Crear ResultsQuery con los resultados
-    ResultsQuery rq = ResultsQuery(query,"invertedIndex",sq.destination                     ,tiempoStr, isFound ? "BACKEND":"", isFound, finalMap);
-    cout << rq.toString() << endl;
-    return rq.toString();
+    return ResultsQuery(query,"invertedIndex",sq.destination,tiempoStr, isFound ? "BACKEND":"", isFound, finalMap).toString();
 }
 
 
 multimap<unsigned int, string, greater<unsigned int>> searchWords(const std::vector<std::string>& words, indexType& index){
-
-    // Establecer threads para el trabajo
 
     // Vector con los maps asociados a las palabras a buscar
     vector<robin_hood::unordered_map<std::string, unsigned int>*> miniMaps;

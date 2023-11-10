@@ -4,6 +4,7 @@
 #include "include/ResultsQuery.h"
 #include <array>
 #include <unistd.h>
+#include <chrono>
 #include <numeric>
 #include <iostream>
 #include <execution>
@@ -77,15 +78,18 @@ void menu(const int& fileDescriptor, const int& buffsize){
         multiset<string> queryWords;
         for (const string& word : split(msg,' ')) queryWords.emplace(word);
         SearchQuery query(queryWords,"frontend","cache");
-        printf("Query: %s\n", query.toString().c_str());
+        printf("Query:\n%s\n", query.toString().c_str());
+        auto clockInit = chrono::high_resolution_clock::now();
         if (FastSocket::sendmsg(fileDescriptor, query.toString(), buffsize) == -1)
             return (void)printf("No se pudo enviar el mensaje\n");
         if (FastSocket::recvmsg(fileDescriptor, msg, buffsize) <= 0)
             return (void)printf("No se pudo recibir el mensaje\n");
-
+        auto clockEnd = chrono::high_resolution_clock::now();
         ResultsQuery rq = ResultsQuery::fromString(msg);
 
-        printf("\nRespuesta:(tiempo = %sns, origen=%s):\n",rq.tiempo.c_str(),rq.ori.c_str());
+        auto timeFindAndSort = chrono::duration_cast<chrono::nanoseconds>(clockEnd - clockInit).count();
+        string tiempoStr = std::to_string(timeFindAndSort);
+        printf("\nRespuesta:(tiempo = %sns, origen = %s, tiempo total = %sns):\n",rq.tiempo.c_str(),rq.ori.c_str(),tiempoStr.c_str());
         //aqui respuesta es msg ->resultsQuery
         int count = 0;
         for (const auto &pair:rq.results){
@@ -99,7 +103,7 @@ void menu(const int& fileDescriptor, const int& buffsize){
 
 void menuContinuar(int fd){
     string msg;
-    printf("Quieres buscar otra cosa? (s/n): "), getline(cin, msg);
+    printf("\nQuieres buscar otra cosa? (s/n): "), getline(cin, msg);
     if (msg == "n") close(fd),clearWindow(),printf("Adios!\n"),exit(EXIT_SUCCESS);
     if (msg != "s") menuContinuar(fd); 
 }
