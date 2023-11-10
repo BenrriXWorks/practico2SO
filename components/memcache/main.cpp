@@ -9,21 +9,26 @@ using namespace std;
 #define BACKEND_ADDRESS getenv("BACKEND_ADDRESS")
 #define BUFFER_SIZE getenv("BUFFER_SIZE")
 
-void event(int frontendFd, int& connectionFd) {
+void event(int& frontendFd, int& connectionFd) {
     while (true) {
         std::string query;
         int recvResult = FastSocket::recvmsg(frontendFd, query, atoi(BUFFER_SIZE));
         if (recvResult == -1) {
             printf("Error al recibir el mensaje\n");
+            close(frontendFd);
+            frontendFd = -1;
             break;
         } else if (!recvResult) {
             printf("Cliente desconectado\n");
+            close(frontendFd);
+            frontendFd = -1;
             break;
         }
 
         if (query == "?") {
             if (FastSocket::sendmsg(frontendFd, "?", atoi(BUFFER_SIZE)) <= 0) {
                 printf("Error al responder con '1'\n");
+                frontendFd = -1;
                 break;
             }
             printf("ping recibido de fd %d\n", frontendFd);
@@ -34,11 +39,15 @@ void event(int frontendFd, int& connectionFd) {
             printf("---------\n%s\n", sq.toString().c_str());
             if (FastSocket::sendmsg(frontendFd, "Mensaje recibido!\n", atoi(BUFFER_SIZE)) <= 0) {
                 printf("Error al responder el mensaje\n");
+                close(frontendFd);
+                frontendFd = -1;
                 break;
             }
             std::string msg = sq.toString();
             if (connectionFd == -1 || FastSocket::sendmsg(connectionFd, msg, atoi(BUFFER_SIZE)) <=  0) {
                 printf("Se rechazó el mensaje %s\n", msg.c_str());
+                close(connectionFd);
+                connectionFd = -1;
                 break;
             }
 
@@ -47,7 +56,7 @@ void event(int frontendFd, int& connectionFd) {
             if (FastSocket::recvmsg(connectionFd, response, atoi(BUFFER_SIZE)) <= 0) {
                 printf("Error al recibir la respuesta\n");
                 close(connectionFd);
-                connectionFd = FastSocket::ServerSocket(atoi(BACKEND_PORT), 1);
+                connectionFd = -1;
                 break;
             }
             ResultsQuery rq = ResultsQuery::fromString(response);
@@ -56,7 +65,7 @@ void event(int frontendFd, int& connectionFd) {
 
         }
     }
-    close(frontendFd);
+    
 }
 
 void reconnect(int& fd, const char* target) {
