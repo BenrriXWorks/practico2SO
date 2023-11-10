@@ -13,22 +13,21 @@ vector<string> split(const string word, char delim){
     return vec;
 }
 
-pair<vector<int>,bool> splitInt(const string word, char delim){
-    size_t r=0, l = 0;
-    string token;
+pair<vector<int>, bool> splitInt(const string word, char delim) {
+    vector<string> partes = split(word, delim);
     vector<int> vec;
-    if (word.find_first_not_of(string("0123456789") + delim) != string::npos){
-        printf("Functions-splitInt: Error, caracter desconocido encontrado en %s\n",word.c_str());
-        return make_pair(vec,false);
+    
+    for (const string& parte : partes) {
+        try {
+            int num = stoi(parte);
+            vec.push_back(num);
+        } catch (...) {
+            printf("Functions-splitInt: Error, caracter desconocido encontrado en %s\n", word.c_str());
+            return make_pair(vec, false);
+        }
     }
-    while ((r=word.find(delim,l)) != string::npos) {
-        int num;
-        num = stoi(word.substr(l,r-l));
-        vec.push_back(num);
-        l = r+1;
-    }
-    vec.push_back(stoi(word.substr(l)));
-    return make_pair(vec,true);
+    
+    return make_pair(vec, true);
 }
 
 string strip(const string line, char c) {
@@ -61,4 +60,12 @@ string soloMin(string line){
 std::pair<std::string,std::string> split1(const std::string& word, const char delim){
     size_t pos = word.find(delim);
     return pos == string::npos ? make_pair(word,"") : make_pair(word.substr(0,pos),word.substr(pos+1));
+}
+
+void clearWindow(){
+    #ifdef _WIN32
+        if (system("cls") != 0) printf("No se pudo limpiar la consola\n");
+    #else
+        if (system("clear") != 0) printf("No se pudo limpiar la consola\n");
+    #endif
 }

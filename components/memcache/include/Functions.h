@@ -1,3 +1,5 @@
+// Version 1.0
+
 #include <vector>
 #include <string>
 #pragma once
@@ -11,3 +13,4 @@ std::string strip(const std::string line);
 std::string stripAllOf(std::string line, std::string chars);
 std::string soloMin(std::string line);
 std::pair<std::string,std::string> split1(const std::string& word, const char delim);
+void clearWindow();
