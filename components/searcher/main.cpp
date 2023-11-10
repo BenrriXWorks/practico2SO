@@ -79,22 +79,28 @@ void menu(const int& fileDescriptor, const int& buffsize){
         for (const string& word : split(msg,' ')) queryWords.emplace(word);
         SearchQuery query(queryWords,"frontend","cache");
         printf("Query:\n%s\n", query.toString().c_str());
+
+        // Enviar y recibir los query
         auto clockInit = chrono::high_resolution_clock::now();
         if (FastSocket::sendmsg(fileDescriptor, query.toString(), buffsize) == -1)
             return (void)printf("No se pudo enviar el mensaje\n");
         if (FastSocket::recvmsg(fileDescriptor, msg, buffsize) <= 0)
             return (void)printf("No se pudo recibir el mensaje\n");
         auto clockEnd = chrono::high_resolution_clock::now();
+
+        // Decodificar el query
         ResultsQuery rq = ResultsQuery::fromString(msg);
 
         auto timeFindAndSort = chrono::duration_cast<chrono::nanoseconds>(clockEnd - clockInit).count();
         string tiempoStr = std::to_string(timeFindAndSort);
+
+        // Imprimir los resultados
         printf("\nRespuesta:(tiempo = %sns, origen = %s, tiempo total = %sns):\n",rq.tiempo.c_str(),rq.ori.c_str(),tiempoStr.c_str());
-        //aqui respuesta es msg ->resultsQuery
         int count = 0;
-        for (const auto &pair:rq.results){
-            printf("%i) %s,%i\n",++count,pair.second.c_str(),pair.first);
-        }
+        if (rq.isFound == 1)
+            for (const auto &pair:rq.results)
+                printf("%i) %s,%i\n",++count,pair.second.c_str(),pair.first);
+        else printf("No se encontraron resultados :(\n");
 
         menuContinuar(fileDescriptor);
     }
