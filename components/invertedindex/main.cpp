@@ -22,11 +22,11 @@ using namespace std;
 #define TOPK_STR getenv("TOP_K")
 #define BUFFER_SIZE getenv("BUFFER_SIZE")
 
-void event(int frontendFd);
-string searchMsg(SearchQuery query);
+void event(int frontendFd, indexType& index);
+string searchMsg(SearchQuery query, indexType& index);
 multimap<unsigned int, string, greater<unsigned int>> searchWords(const std::vector<std::string>& words, indexType& index); 
 robin_hood::unordered_map<std::string, unsigned int> scoreIntersect(vector<robin_hood::unordered_map<std::string, unsigned int>*>& v);
-
+indexType createIndex();
 
 int main(int argc, char** argv){
     
@@ -36,6 +36,10 @@ int main(int argc, char** argv){
         printf("PORT_C2: %s | ADDRESS: %s | INDEX_ROUTE: %s | TOP_K: %s | BUFFER_SIZE: %s",PORT_CACHE,addr,INDEX_ROUTE,TOPK_STR,BUFFER_SIZE);
         return EXIT_FAILURE;
     }
+
+    // Cargar el indice invertido
+    indexType index = createIndex();
+
     // Esperar a que se conecte el memcache
     while (true) {
         printf("Esperando cliente\n");
@@ -46,13 +50,13 @@ int main(int argc, char** argv){
             continue;
         }
         printf("Se ha conectado con un cliente\n");
-        event(frontendFd);
+        event(frontendFd, index);
     }
     return EXIT_SUCCESS;
 }
 
 // Manejar los eventos de los mensajes
-void event(int frontendFd){
+void event(int frontendFd, indexType& index){
 
     while(true){
         std:: string query;
@@ -77,24 +81,24 @@ void event(int frontendFd){
         SearchQuery sq = SearchQuery::fromString(query);
         
         // Hacer la busqueda
-        string result = searchMsg(sq);
+        string result = searchMsg(sq, index);
 
         // Enviar mensaje con respuesta
         if (FastSocket::sendmsg(frontendFd, result, atoi(BUFFER_SIZE)) <= 0) {
             printf("Error al responder el mensaje\n");
             break;
         }
+
         printf("Mensaje Enviado:\n%s\n",result.c_str());
     }
 }
 
-string searchMsg(SearchQuery sq){
-    string query = sq.strQuery;
+indexType createIndex(){
     // Cargar el archivo de indice
     FileReader fr;
     if (!fr.open(string(INDEX_ROUTE))){
         printf("Main: No se pudo cargar el archivo de indice en %s\n",INDEX_ROUTE);
-        return "";
+        return indexType();
     }
 
     // Leer el indice como un unordered map de string a unordered map de string a unsigned int
@@ -107,6 +111,12 @@ string searchMsg(SearchQuery sq){
                 index[wordAndFiles.first][filenameAndCount.first] = stoi(filenameAndCount.second);
             }
         }
+    return index;
+}
+
+string searchMsg(SearchQuery sq, indexType& index){
+    string query = split1(sq.toString(),'\n').first;
+
     // Buscar en el indice
     auto clockInit = chrono::high_resolution_clock::now();
     multimap<unsigned int, string, greater<unsigned int>> invertedOrderedMap = searchWords(split(strip(query),' '), index);
@@ -115,7 +125,7 @@ string searchMsg(SearchQuery sq){
     // Guardar solo los top k
     multimap<unsigned int, string, greater<unsigned int>> finalMap;
     int i = 0;
-    for (const auto& elem : invertedOrderedMap) if (atoi(TOPK_STR) < ++i) break; else finalMap.emplace(elem);
+    for (each elem : invertedOrderedMap) if (atoi(TOPK_STR) < ++i) break; else finalMap.emplace(elem);
 
     auto timeFindAndSort = chrono::duration_cast<chrono::nanoseconds>(clockEnd - clockInit).count();
     bool isFound = !finalMap.empty();
