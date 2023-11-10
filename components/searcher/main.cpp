@@ -10,7 +10,7 @@
 
 #define TOTAL_ENV 3
 #define PORT_FRONTEND_CACHE getenv("PORT_C1")
-#define SERVER_ADDRESS getenv("ADDRESS")
+#define SERVER_ADDRESS getenv("FRONTEND_ADDRESS")
 #define BUFFER_SIZE getenv("BUFFER_SIZE")
 
 using namespace std;

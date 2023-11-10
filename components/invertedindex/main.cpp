@@ -17,7 +17,7 @@ using namespace std;
 #define indexType robin_hood::unordered_map<std::string, robin_hood::unordered_map<std::string, unsigned int>>
  
 #define portCache getenv("PORT_C2")
-#define addr getenv("ADDRESS")
+#define addr getenv("BACKEND_ADDRESS")
 #define filePath getenv("INDEX_ROUTE")
 #define topk_str getenv("TOP_K")
 #define buffsize getenv("BUFFER_SIZE")
@@ -68,6 +68,7 @@ void event(int frontendFd){
                 break;
             }
             printf("ping recibido de fd %d\n", frontendFd);
+            continue;
         }
         cout <<query << endl;
         SearchQuery sq = SearchQuery::fromString(query);
@@ -82,6 +83,7 @@ void event(int frontendFd){
         cout << result << endl;
     }
 }
+
 string searchMsg(SearchQuery sq){
     string query = sq.getQuery();
     string filepath = filePath;
@@ -111,7 +113,7 @@ string searchMsg(SearchQuery sq){
     auto it = invertedOrderedMap.begin();
     for (int i = 0; i < atoi(topk_str) && it != invertedOrderedMap.end(); ++i, ++it) {
     finalMap.insert(*it);
-}
+    }
     auto Time = chrono::duration_cast<chrono::nanoseconds>(clockEnd - clockInit).count();
     bool isFound = !finalMap.empty();
 

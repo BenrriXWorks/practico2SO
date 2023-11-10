@@ -129,6 +129,6 @@ bool FastSocket::ping(int socketFd, const char* message, const char* expectedRes
     if (sendmsg(socketFd, message, 1) <= 0) return false;
     // Esperar la respuesta
     std::string response;
-    if (recvmsg(socketFd, response, buffsize) <= 0 || response != expectedResponse) return false;
+    if (recvmsg(socketFd, response, buffsize) <= 0 || response != std::string(expectedResponse)) return false;
     return true; // Éxito
 }
