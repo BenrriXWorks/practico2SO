@@ -78,8 +78,9 @@ void event(int cacheFd, indexType& index){
             printf("ping recibido de fd %d\n", cacheFd);
             continue;
         }
-        
 
+        printf("SearchQuery: \n%s\n\n", query.c_str());
+        
         // Hacer la busqueda
         string result = searchMsg(sq, index);
 
@@ -89,7 +90,7 @@ void event(int cacheFd, indexType& index){
             break;
         }
 
-        printf("Mensaje Enviado:\n%s\n",result.c_str());
+        printf("Mensaje Enviado:\n%s\n\n",result.c_str());
     }
 }
 

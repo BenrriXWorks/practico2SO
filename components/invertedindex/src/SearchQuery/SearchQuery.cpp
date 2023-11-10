@@ -17,7 +17,7 @@ std::string SearchQuery::toString(){
 SearchQuery SearchQuery::fromString(std::string query){
     const auto splittedQuery = split(query,'\n');
     if (splittedQuery.size() != 3) {
-        printf("Query invalida: %s\n",query.c_str());
+        //printf("Query invalida: %s\n",query.c_str());
         return SearchQuery(multiset<string>(),"","");
     }
     multiset<string> elements;

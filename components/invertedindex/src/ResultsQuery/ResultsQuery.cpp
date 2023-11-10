@@ -30,7 +30,7 @@ ResultsQuery ResultsQuery::fromString(std::string query){
     const auto splittedQuery = split(query,'\n');
    
     if(splittedQuery.size()!= 7){
-        printf("Query invalida: %s\n",query.c_str());
+        //printf("Query invalida: %s\n",query.c_str());
         return ResultsQuery("","","","","",0,std::multimap<unsigned int,std::string,std::greater<unsigned int>>());
     }
     bool isFound = (splittedQuery[5] == "1");

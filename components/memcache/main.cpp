@@ -79,13 +79,13 @@ void event(int& frontendFd, int& connectionFd, Cache& cache) {
                 frontendFd = -1;
                 break;
             }
-            printf("Encontrado en cache: \n%s\n", finded->toString().c_str());
+            printf("Encontrado en cache:\n%s\n\n", finded->toString().c_str());
             continue; // Volver a esperar una solicitud
         }
 
         // Preguntar al backend si no esta en la cache
         if (connectionFd == -1 || FastSocket::sendmsg(connectionFd, sq.toString(), atoi(BUFFER_SIZE)) <=  0) {
-            printf("Se rechazó el mensaje %s\n", sq.toString().c_str());
+            printf("Se rechazó el mensaje:\n%s\n\n", sq.toString().c_str());
             close(connectionFd);
             connectionFd = -1;
             break;
@@ -94,7 +94,7 @@ void event(int& frontendFd, int& connectionFd, Cache& cache) {
         std::string response;
         printf("Esperando respuesta...\n");
         if (FastSocket::recvmsg(connectionFd, response, atoi(BUFFER_SIZE)) <= 0) {
-            printf("Error al recibir la respuesta\n");
+            printf("Error al recibir la respuesta\n\n");
             close(connectionFd);
             connectionFd = -1;
             break;
@@ -105,7 +105,7 @@ void event(int& frontendFd, int& connectionFd, Cache& cache) {
         rq.destination="frontend";
         FastSocket::sendmsg(frontendFd, rq.toString(), atoi(BUFFER_SIZE));
         cache.insert(rq);
-        printf("Mensaje enviado: %s\n", rq.toString().c_str());
+        printf("Busqueda backend: \n%s\n\n", rq.toString().c_str());
     
     }
     
@@ -119,9 +119,7 @@ void reconnect(int& fd, const char* target) {
             if (strcmp(target, "backend") == 0) {
                 // Si el objetivo es backend hacer ping para comprobar el estado
                 string res;
-                if (FastSocket::sendmsg(fd,"?",atoi(BUFFER_SIZE) > 0) &&
-                    FastSocket::recvmsg(fd,res,atoi(BUFFER_SIZE)) != -1 &&
-                    res == "?"){
+                if (FastSocket::ping(fd,"?","?",atoi(BUFFER_SIZE))){
                         printf("Conexión establecida con el %s\n", target);
                         return;
                 }
