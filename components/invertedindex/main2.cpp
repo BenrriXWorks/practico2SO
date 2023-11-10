@@ -145,7 +145,7 @@ string searchMsg(SearchQuery sq){
     string tiempoStr = std::to_string(Time);
     
     // Crear ResultsQuery con los resultados
-    ResultsQuery rq = ResultsQuery(query,"invertedIndex",sq.origin,tiempoStr, isFound ? "BACKEND":"", isFound, finalMap);
+    ResultsQuery rq = ResultsQuery(query,"invertedIndex",sq.destination                     ,tiempoStr, isFound ? "BACKEND":"", isFound, finalMap);
     cout << rq.toString() << endl;
     return rq.toString();
 }

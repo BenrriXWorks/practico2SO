@@ -74,7 +74,7 @@ void menu(const int& fileDescriptor, const int& buffsize){
         printf("BUSCADOR BASADO EN INDICE INVERTIDO\n");
         string msg;
         printf("Bienvenido, que desea buscar?: "), getline(cin, msg);
-        set<string> queryWords;
+        multiset<string> queryWords;
         for (const string& word : split(msg,' ')) queryWords.emplace(word);
         SearchQuery query(queryWords,"frontend","cache");
         printf("Query: %s\n", query.toString().c_str());
@@ -85,7 +85,7 @@ void menu(const int& fileDescriptor, const int& buffsize){
 
         ResultsQuery rq = ResultsQuery::fromString(msg);
 
-        printf("Respuesta:(tiempo = %sns, origen=%s\n",rq.tiempo.c_str(),rq.ori.c_str());
+        printf("\nRespuesta:(tiempo = %sns, origen=%s):\n",rq.tiempo.c_str(),rq.ori.c_str());
         //aqui respuesta es msg ->resultsQuery
         int count = 0;
         for (const auto &pair:rq.results){
