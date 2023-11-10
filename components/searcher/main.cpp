@@ -85,9 +85,12 @@ void menu(const int& fileDescriptor, const int& buffsize){
 
         ResultsQuery rq = ResultsQuery::fromString(msg);
 
-        printf("Respuesta:(tiempo = %sns, origen=%s",rq.tiempo,rq.ori);
+        printf("Respuesta:(tiempo = %sns, origen=%s\n",rq.tiempo.c_str(),rq.ori.c_str());
         //aqui respuesta es msg ->resultsQuery
-        
+        int count = 0;
+        for (const auto &pair:rq.results){
+            printf("%i) %s,%i\n",++count,pair.second.c_str(),pair.first);
+        }
 
         menuContinuar(fileDescriptor);
     }

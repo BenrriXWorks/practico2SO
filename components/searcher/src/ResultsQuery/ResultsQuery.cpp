@@ -5,8 +5,6 @@ using namespace std;
 std ::string ResultsQuery::toString(){
     std::stringstream ss;
 
-    
-
     ss << query << "\n" << origin << "\n" << destination << "\n"
        << tiempo << "\n" << ori << "\n" << std::to_string(isFound) << "\n";
     for (const auto &result : results) {
@@ -18,9 +16,7 @@ std ::string ResultsQuery::toString(){
 
 ResultsQuery ResultsQuery::fromString(std::string query){
     const auto splittedQuery = split(query,'\n');
-     for(auto elem:splittedQuery){
-        cout << elem << endl;
-    }
+    
     if(splittedQuery.size()!= 7){
         printf("Query invalida: %s\n",query.c_str());
         return ResultsQuery("","","","","",0,std::multimap<unsigned int,std::string,std::greater<unsigned int>>());
