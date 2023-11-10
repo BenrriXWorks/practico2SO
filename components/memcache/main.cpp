@@ -4,7 +4,7 @@
 #include <iostream>
 using namespace std;
 
-#define FRONTEND_PORT getenv("PORT_C1")
+#define CACHE_PORT getenv("PORT_C1")
 #define BACKEND_PORT getenv("PORT_C2")
 #define BACKEND_ADDRESS getenv("BACKEND_ADDRESS")
 #define BUFFER_SIZE getenv("BUFFER_SIZE")
@@ -88,21 +88,21 @@ void reconnect(int& fd, const char* target) {
         sleep(3);
         fd = (strcmp(target, "backend") == 0) ?
             FastSocket::ClientSocket(atoi(BACKEND_PORT), BACKEND_ADDRESS) :
-            FastSocket::ServerSocket(atoi(FRONTEND_PORT), 1);
+            FastSocket::ServerSocket(atoi(CACHE_PORT), 1);
     }
 }
 
 int main() {
 
-    if (BUFFER_SIZE == nullptr || FRONTEND_PORT == nullptr || BACKEND_PORT == nullptr || BACKEND_ADDRESS == nullptr) {
+    if (BUFFER_SIZE == nullptr || CACHE_PORT == nullptr || BACKEND_PORT == nullptr || BACKEND_ADDRESS == nullptr) {
         printf("Falta el puerto (C1 O C2) o la dirección en env\n");
-        printf("BUFFER_SIZE: %s | FRONTEND_PORT: %s | BACKEND_PORT: %s | BACKEND_ADDRESS: %s\n",
-            BUFFER_SIZE, FRONTEND_PORT, BACKEND_PORT, BACKEND_ADDRESS);
+        printf("BUFFER_SIZE: %s | CACHE_PORT: %s | BACKEND_PORT: %s | BACKEND_ADDRESS: %s\n",
+            BUFFER_SIZE, CACHE_PORT, BACKEND_PORT, BACKEND_ADDRESS);
         return EXIT_FAILURE;
     }
 
     int backendFd = FastSocket::ClientSocket(atoi(BACKEND_PORT), BACKEND_ADDRESS);
-    int frontendFd = FastSocket::ServerSocket(atoi(FRONTEND_PORT), 1);
+    int frontendFd = FastSocket::ServerSocket(atoi(CACHE_PORT), 1);
     while (true) {
 
         reconnect(backendFd, "backend");  
