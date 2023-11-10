@@ -135,7 +135,7 @@ string searchMsg(SearchQuery sq, indexType& index){
     bool isFound = !finalMap.empty();
     string tiempoStr = std::to_string(timeFindAndSort);
     
-    return ResultsQuery(query,"invertedIndex",sq.destination,tiempoStr, isFound ? "BACKEND":"", isFound, finalMap).toString();
+    return ResultsQuery(query,"invertedIndex",sq.destination,tiempoStr,"BACKEND", isFound, finalMap).toString();
 }
 
 
