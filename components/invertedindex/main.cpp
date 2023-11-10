@@ -22,7 +22,7 @@ using namespace std;
 #define TOPK_STR getenv("TOP_K")
 #define BUFFER_SIZE getenv("BUFFER_SIZE")
 
-void event(int frontendFd, indexType& index);
+void event(int cacheFd, indexType& index);
 string searchMsg(SearchQuery query, indexType& index);
 multimap<unsigned int, string, greater<unsigned int>> searchWords(const std::vector<std::string>& words, indexType& index); 
 robin_hood::unordered_map<std::string, unsigned int> scoreIntersect(vector<robin_hood::unordered_map<std::string, unsigned int>*>& v);
@@ -43,24 +43,24 @@ int main(int argc, char** argv){
     // Esperar a que se conecte el memcache
     while (true) {
         printf("Esperando cliente\n");
-        int frontendFd = FastSocket::ServerSocket(atoi(PORT_CACHE), 1);
-        if (frontendFd == -1) {
+        int cacheFd = FastSocket::ServerSocket(atoi(PORT_CACHE), 1);
+        if (cacheFd == -1) {
             printf("No se pudo crear el socket, intentándolo nuevamente en 5 segundos\n");
             sleep(5);
             continue;
         }
         printf("Se ha conectado con un cliente\n");
-        event(frontendFd, index);
+        event(cacheFd, index);
     }
     return EXIT_SUCCESS;
 }
 
 // Manejar los eventos de los mensajes
-void event(int frontendFd, indexType& index){
+void event(int cacheFd, indexType& index){
 
     while(true){
-        std:: string query;
-        int recvResult = FastSocket::recvmsg(frontendFd, query, atoi(BUFFER_SIZE));
+        std::string query;
+        int recvResult = FastSocket::recvmsg(cacheFd, query, atoi(BUFFER_SIZE));
 
         // Si el mensaje no se recibio o el cliente se desconecto
         if (recvResult <= 0) {
@@ -69,22 +69,22 @@ void event(int frontendFd, indexType& index){
         }
 
         // Si el mensaje es un ping
-        if (query == string("?")) {
-            if (FastSocket::sendmsg(frontendFd, "?", atoi(BUFFER_SIZE)) <= 0) {
+        SearchQuery sq = SearchQuery::fromString(query);
+        if (strip(sq.toString(),'\n') == ""){
+            if (FastSocket::sendmsg(cacheFd, "?", atoi(BUFFER_SIZE)) <= 0) {
                 printf("Error al responder con '1'\n");
                 break;
             }
-            printf("ping recibido de fd %d\n", frontendFd);
+            printf("ping recibido de fd %d\n", cacheFd);
             continue;
         }
-        printf("Mensaje recibido:\n%s\n",query.c_str());
-        SearchQuery sq = SearchQuery::fromString(query);
         
+
         // Hacer la busqueda
         string result = searchMsg(sq, index);
 
         // Enviar mensaje con respuesta
-        if (FastSocket::sendmsg(frontendFd, result, atoi(BUFFER_SIZE)) <= 0) {
+        if (FastSocket::sendmsg(cacheFd, result, atoi(BUFFER_SIZE)) <= 0) {
             printf("Error al responder el mensaje\n");
             break;
         }
@@ -94,15 +94,17 @@ void event(int frontendFd, indexType& index){
 }
 
 indexType createIndex(){
+
+    indexType index;
+
     // Cargar el archivo de indice
     FileReader fr;
     if (!fr.open(string(INDEX_ROUTE))){
         printf("Main: No se pudo cargar el archivo de indice en %s\n",INDEX_ROUTE);
-        return indexType();
+        return index;
     }
 
     // Leer el indice como un unordered map de string a unordered map de string a unsigned int
-    indexType index;
     for (each line : fr.readLines())
         if (!line.empty()){
             auto wordAndFiles = split1(line,':');
@@ -111,6 +113,7 @@ indexType createIndex(){
                 index[wordAndFiles.first][filenameAndCount.first] = stoi(filenameAndCount.second);
             }
         }
+    printf("Indice cargado!\n");
     return index;
 }
 

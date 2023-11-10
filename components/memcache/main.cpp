@@ -54,7 +54,7 @@ void event(int& frontendFd, int& connectionFd, Cache& cache) {
             break;
         }
         // Si es un ping retornar '?'
-        if (query == "?") {
+        if (query == string("?")) {
             if (FastSocket::sendmsg(frontendFd, "?", atoi(BUFFER_SIZE)) <= 0) {
                 frontendFd = -1;
                 break;
@@ -64,7 +64,6 @@ void event(int& frontendFd, int& connectionFd, Cache& cache) {
         }
         // Ahora que el mensaje esta recibido
         SearchQuery sq = SearchQuery::fromString(query);
-        clearWindow();
         auto startTime = chrono::high_resolution_clock::now();
 
         // Buscar en la cache
@@ -119,9 +118,12 @@ void reconnect(int& fd, const char* target) {
         if (fd != -1) {
             if (strcmp(target, "backend") == 0) {
                 // Si el objetivo es backend hacer ping para comprobar el estado
-                if (FastSocket::ping(fd, "?", "?", atoi(BUFFER_SIZE))) {
-                    printf("Conexión establecida con el %s\n", target);
-                    return;
+                string res;
+                if (FastSocket::sendmsg(fd,"?",atoi(BUFFER_SIZE) > 0) &&
+                    FastSocket::recvmsg(fd,res,atoi(BUFFER_SIZE)) != -1 &&
+                    res == "?"){
+                        printf("Conexión establecida con el %s\n", target);
+                        return;
                 }
             } else {
                 // Si el objetivo no es "backend" no hacer ping
