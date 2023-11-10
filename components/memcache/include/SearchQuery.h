@@ -6,11 +6,6 @@
 #include <numeric>
 
 
-/*mensaje={
-origen:”./searcher”,
-destino:”./memcache”,
-contexto:{ txtToSerarch:”hola mundo”}
-}*/
 class SearchQuery
 {
 public:

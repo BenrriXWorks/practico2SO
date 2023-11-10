@@ -1,5 +1,5 @@
 #include "../../include/SearchQuery.h"
-#include <numeric>
+
 using namespace std;
 
 std::string SearchQuery::toString(){
@@ -26,10 +26,7 @@ SearchQuery SearchQuery::fromString(std::string query){
     return SearchQuery(elements,splittedQuery[1],splittedQuery[2]);
 }
 
-std::string SearchQuery::getQuery(){
-    return
-        accumulate(query.begin(), query.end(), std::string(),
-                [](const std::string &a, const std::string &b) {
-                return a + (a.empty() ? "" : " ") + b;
-                });
+std::string SearchQuery::queryToString() {
+    return std::accumulate(query.begin(), query.end(), std::string(),
+        [](const std::string& a, const std::string& b) { return a + (a.empty() ? "" : " ") + b; });
 }
