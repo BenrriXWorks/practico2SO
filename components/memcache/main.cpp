@@ -64,8 +64,8 @@ void event(int& frontendFd, int& connectionFd, Cache& cache) {
         }
         // Ahora que el mensaje esta recibido
         SearchQuery sq = SearchQuery::fromString(query);
-        auto startTime = chrono::high_resolution_clock::now();
         clearWindow();
+        auto startTime = chrono::high_resolution_clock::now();
 
         // Buscar en la cache
         ResultsQuery* finded;

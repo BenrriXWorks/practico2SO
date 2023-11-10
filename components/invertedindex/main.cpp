@@ -62,7 +62,7 @@ void event(int frontendFd){
             printf("Cliente desconectado\n");
             break;
         }
-        if (query == "?") {
+        if (query == string("?")) {
             if (FastSocket::sendmsg(frontendFd, "?", atoi(buffsize)) <= 0) {
                 printf("Error al responder con '1'\n");
                 break;
