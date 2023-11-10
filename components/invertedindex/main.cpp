@@ -115,7 +115,7 @@ string searchMsg(SearchQuery sq){
     // Guardar solo los top k
     multimap<unsigned int, string, greater<unsigned int>> finalMap;
     int i = 0;
-    for (const auto& elem : invertedOrderedMap) if (atoi(TOPK_STR) > ++i) break; else finalMap.insert(elem);
+    for (const auto& elem : invertedOrderedMap) if (atoi(TOPK_STR) < ++i) break; else finalMap.emplace(elem);
 
     auto timeFindAndSort = chrono::duration_cast<chrono::nanoseconds>(clockEnd - clockInit).count();
     bool isFound = !finalMap.empty();
