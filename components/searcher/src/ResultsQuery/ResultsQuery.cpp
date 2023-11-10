@@ -1,17 +1,7 @@
-
-// v 1.0
+//v1.0
 #include "../../include/ResultsQuery.h"
-
-
-/*
-    query
-    origin
-    destination
-    tiempo
-    ori aca es igual a backend
-    found(0,1)
-    text1,1 tex2,2 text3,3
-*/
+#include <iostream>
+using namespace std;
 std ::string ResultsQuery::toString(){
     std::stringstream ss;
 
@@ -28,7 +18,9 @@ std ::string ResultsQuery::toString(){
 
 ResultsQuery ResultsQuery::fromString(std::string query){
     const auto splittedQuery = split(query,'\n');
-   
+     for(auto elem:splittedQuery){
+        cout << elem << endl;
+    }
     if(splittedQuery.size()!= 7){
         printf("Query invalida: %s\n",query.c_str());
         return ResultsQuery("","","","","",0,std::multimap<unsigned int,std::string,std::greater<unsigned int>>());

@@ -1,6 +1,7 @@
 #include "include/FastSocket.h"
 #include "include/Functions.h"
 #include "include/SearchQuery.h"
+#include "include/ResultsQuery.h"
 #include <array>
 #include <unistd.h>
 #include <numeric>
@@ -70,6 +71,7 @@ void menu(const int& fileDescriptor, const int& buffsize){
     
     clearWindow();
     {
+        printf("BUSCADOR BASADO EN INDICE INVERTIDO\n");
         string msg;
         printf("Bienvenido, que desea buscar?: "), getline(cin, msg);
         set<string> queryWords;
@@ -80,7 +82,13 @@ void menu(const int& fileDescriptor, const int& buffsize){
             return (void)printf("No se pudo enviar el mensaje\n");
         if (FastSocket::recvmsg(fileDescriptor, msg, buffsize) <= 0)
             return (void)printf("No se pudo recibir el mensaje\n");
-        printf("Respuesta: %s\n",msg.c_str());
+
+        ResultsQuery rq = ResultsQuery::fromString(msg);
+
+        printf("Respuesta:(tiempo = %sns, origen=%s",rq.tiempo,rq.ori);
+        //aqui respuesta es msg ->resultsQuery
+        
+
         menuContinuar(fileDescriptor);
     }
     menu(fileDescriptor, buffsize);

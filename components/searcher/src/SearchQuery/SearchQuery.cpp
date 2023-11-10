@@ -25,3 +25,4 @@ SearchQuery SearchQuery::fromString(std::string query){
     
     return SearchQuery(elements,splittedQuery[1],splittedQuery[2]);
 }
+

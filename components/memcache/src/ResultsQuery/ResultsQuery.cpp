@@ -37,6 +37,6 @@ ResultsQuery ResultsQuery::fromString(std::string query){
         }
     }
 
-    return ResultsQuery(splittedQuery[0],splittedQuery[1],splittedQuery[2],splittedQuery[3],splittedQuery[4],isFound,std::multimap<unsigned int,std::string,std::greater<unsigned int>>());
+    return ResultsQuery(splittedQuery[0],splittedQuery[1],splittedQuery[2],splittedQuery[3],splittedQuery[4],isFound,resultsMap);
 }
 
